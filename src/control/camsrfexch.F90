@@ -12,7 +12,7 @@ module camsrfexch
   use infnan,          only: posinf, assignment(=)
   use cam_abortutils,  only: endrun
   use cam_logfile,     only: iulog
-  use srf_field_check, only: active_Sl_ram1, active_Sl_fv, active_Sl_soilw,                &
+  use srf_field_check, only: active_Sl_ram1, active_Sl_fv, active_Sl_soilw, active_Fall_flxnh3, &
                              active_Fall_flxdst1, active_Fall_flxvoc, active_Fall_flxfire
   use cam_control_mod, only: aqua_planet, simple_phys
 
@@ -120,6 +120,7 @@ module camsrfexch
      real(r8), pointer, dimension(:,:) :: depvel ! deposition velocities
      real(r8), pointer, dimension(:,:) :: dstflx ! dust fluxes
      real(r8), pointer, dimension(:,:) :: meganflx ! MEGAN fluxes
+     real(r8), pointer, dimension(:)   :: fanflx   ! FAN fluxes
      real(r8), pointer, dimension(:,:) :: fireflx ! wild fire emissions
      real(r8), pointer, dimension(:)   :: fireztop ! wild fire emissions vert distribution top
   end type cam_in_t
@@ -135,6 +136,7 @@ CONTAINS
 
     use shr_drydep_mod,  only: n_drydep
     use shr_megan_mod,   only: shr_megan_mechcomps_n
+    use shr_fan_mod,     only: shr_fan_to_atm
     use shr_fire_emis_mod,only: shr_fire_emis_mechcomps_n
 
     ! ARGUMENTS:
@@ -160,6 +162,7 @@ CONTAINS
        nullify(cam_in(c)%depvel)
        nullify(cam_in(c)%dstflx)
        nullify(cam_in(c)%meganflx)
+       nullify(cam_in(c)%fanflx)
        nullify(cam_in(c)%fireflx)
        nullify(cam_in(c)%fireztop)
     enddo
@@ -184,6 +187,10 @@ CONTAINS
        if (active_Fall_flxvoc .and. shr_megan_mechcomps_n>0) then
           allocate (cam_in(c)%meganflx(pcols,shr_megan_mechcomps_n), stat=ierror)
           if ( ierror /= 0 ) call endrun(sub//': allocation error meganflx')
+       endif
+       if (active_Fall_flxnh3 .and. shr_fan_to_atm) then
+          allocate (cam_in(c)%fanflx(pcols), stat=ierror)
+          if ( ierror /= 0 ) call endrun(sub//': allocation error fanflx')
        endif
     end do
 
@@ -241,7 +248,8 @@ CONTAINS
             cam_in(c)%dstflx(:,:) = 0.0_r8
        if (associated(cam_in(c)%meganflx)) &
             cam_in(c)%meganflx(:,:) = 0.0_r8
-
+       if (associated(cam_in(c)%fanflx)) &
+            cam_in(c)%fanflx(:) = 0.0_r8
        cam_in(c)%cflx   (:,:) = 0._r8
        cam_in(c)%ustar    (:) = 0._r8
        cam_in(c)%re       (:) = 0._r8
@@ -385,6 +393,10 @@ CONTAINS
           if(associated(cam_in(c)%meganflx)) then
              deallocate(cam_in(c)%meganflx)
              nullify(cam_in(c)%meganflx)
+          end if
+          if(associated(cam_in(c)%fanflx)) then
+             deallocate(cam_in(c)%fanflx)
+             nullify(cam_in(c)%fanflx)
           end if
           if(associated(cam_in(c)%depvel)) then
              deallocate(cam_in(c)%depvel)

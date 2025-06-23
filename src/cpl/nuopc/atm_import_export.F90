@@ -19,6 +19,7 @@ module atm_import_export
   use srf_field_check   , only : set_active_Sl_soilw
   use srf_field_check   , only : set_active_Fall_flxdst1
   use srf_field_check   , only : set_active_Fall_flxvoc
+  use srf_field_check   , only : set_active_Fall_flxnh3
   use srf_field_check   , only : set_active_Fall_flxfire
   use srf_field_check   , only : set_active_Fall_fco2_lnd
   use srf_field_check   , only : set_active_Faoo_fco2_ocn
@@ -59,8 +60,10 @@ module atm_import_export
   character(len=cx)      :: carma_fields = ' '      ! list of CARMA fields from lnd->atm
   integer                :: drydep_nflds = -huge(1) ! number of dry deposition velocity fields lnd-> atm
   integer                :: megan_nflds = -huge(1)  ! number of MEGAN voc fields from lnd-> atm
+  character(len=cx)      :: fan_fields = ' '        ! List of FAN nh3 emission fields from lnd->atm
   integer                :: emis_nflds = -huge(1)   ! number of fire emission fields from lnd-> atm
   logical                :: atm_provides_lightning = .false. ! cld to grnd lightning flash freq (min-1)
+  logical                :: fan_have_fields = .false.        ! .true. if FAN coupled to atmosphere
   character(*),parameter :: F01 = "('(cam_import_export) ',a,i8,2x,i8,2x,d21.14)"
   character(*),parameter :: F02 = "('(cam_import_export) ',a,i8,2x,i8,2x,i8,2x,d21.14)"
   character(*),parameter :: u_FILE_u = __FILE__
@@ -76,6 +79,7 @@ contains
 
     use shr_drydep_mod    , only : shr_drydep_readnl
     use shr_megan_mod     , only : shr_megan_readnl
+    use shr_fan_mod       , only : shr_fan_readnl
     use shr_fire_emis_mod , only : shr_fire_emis_readnl
     use shr_carma_mod     , only : shr_carma_readnl
     use shr_lightning_coupling_mod, only : shr_lightning_coupling_readnl
@@ -85,6 +89,7 @@ contains
     ! read mediator fields options
     call shr_drydep_readnl(nl_file_name, drydep_nflds)
     call shr_megan_readnl(nl_file_name, megan_nflds)
+    call shr_fan_readnl(nl_file_name, fan_fields, fan_have_fields)
     call shr_fire_emis_readnl(nl_file_name, emis_nflds)
     call shr_carma_readnl(nl_file_name, carma_fields)
     call shr_lightning_coupling_readnl(nl_file_name, atm_provides_lightning)
@@ -266,6 +271,12 @@ contains
     if (megan_nflds > 0) then
        call fldlist_add(fldsToAtm_num, fldsToAtm, 'Fall_voc', ungridded_lbound=1, ungridded_ubound=megan_nflds)
        call set_active_Fall_flxvoc(.true.)
+    end if
+
+    ! FAN NH3 emissions fluxes from land
+    if (fan_fields /= ' ') then
+       call fldlist_add(fldsToAtm_num, fldsToAtm, 'Fall_FAN_nh3')
+       call set_active_Fall_flxnh3(.true.)
     end if
 
     ! fire emissions fluxes from land
@@ -675,6 +686,21 @@ contains
                 do n = 1, size(fldptr2d, dim=1)
                    cam_in(c)%meganflx(i,n) = fldptr2d(n,g) * med2mod_areacor(g)
                 end do
+                g = g + 1
+             end do
+          end if
+       end do
+    end if
+
+    ! FAN NH3 emis fluxes from land
+    call state_getfldptr(importState, 'Fall_FAN_nh3', fldptr=fldptr1d, exists=exists, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (exists) then
+       g = 1
+       do c=begchunk,endchunk
+          if ( associated(cam_in(c)%fanflx) ) then
+             do i = 1,get_ncols_p(c)
+                cam_in(c)%fanflx(i) = fldptr1d(g) 
                 g = g + 1
              end do
           end if

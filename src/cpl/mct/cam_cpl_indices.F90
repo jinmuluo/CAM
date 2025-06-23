@@ -4,13 +4,14 @@ module cam_cpl_indices
   use mct_mod
   use shr_drydep_mod,    only: drydep_fields_token, n_drydep
   use shr_megan_mod,     only: shr_megan_fields_token, shr_megan_mechcomps_n
+  use shr_fan_mod,       only: shr_fan_fields_token, shr_fan_to_atm
   use shr_fire_emis_mod, only: shr_fire_emis_fields_token, shr_fire_emis_ztop_token, &
                                shr_fire_emis_mechcomps_n
   use srf_field_check,   only: set_active_Sl_ram1, set_active_Sl_fv, set_active_Sl_soilw, &
                                set_active_Fall_flxdst1, set_active_Fall_flxvoc,           &
                                set_active_Fall_flxfire, set_active_Fall_fco2_lnd,         &
                                set_active_Faoo_fco2_ocn, set_active_Faxa_nhx,             &
-                               set_active_Faxa_noy
+                               set_active_Faxa_noy, set_active_Fall_flxnh3
 
   implicit none
 
@@ -83,6 +84,7 @@ module cam_cpl_indices
   integer :: index_x2a_Fall_flxdst3    ! dust flux size bin 3
   integer :: index_x2a_Fall_flxdst4    ! dust flux size bin 4
   integer :: index_x2a_Fall_flxvoc     ! MEGAN emissions fluxes
+  integer :: index_x2a_Fall_flxnh3     ! FAN NH3 emission fluxes
   integer :: index_x2a_Fall_flxfire    ! Fire emissions fluxes
   integer :: index_x2a_Sl_ztopfire   ! Fire emissions fluxes top of vert distribution
   integer :: index_x2a_Fall_fco2_lnd   ! co2 flux from land
@@ -154,6 +156,12 @@ contains
        index_x2a_Fall_flxvoc = 0
     endif
 
+    if (shr_fan_to_atm) then
+       index_x2a_Fall_flxnh3 = mct_avect_indexra(x2a,trim(shr_fan_fields_toke))
+    else
+       index_x2a_Fall_flxnh3 = 0
+    endif
+
     if (shr_fire_emis_mechcomps_n>0) then
        index_x2a_Fall_flxfire = mct_avect_indexra(x2a,trim(shr_fire_emis_fields_token))
        index_x2a_Sl_ztopfire = mct_avect_indexra(x2a,trim(shr_fire_emis_ztop_token))
@@ -214,6 +222,7 @@ contains
     call set_active_Sl_soilw(     index_x2a_Sl_soilw>0)
     call set_active_Fall_flxdst1( index_x2a_Fall_flxdst1>0)
     call set_active_Fall_flxvoc(  index_x2a_Fall_flxvoc>0)
+    call set_active_Fall_flxnh3(  index_x2a_Fall_flxnh3>0)
     call set_active_Fall_flxfire( index_x2a_Fall_flxfire>0)
     call set_active_Fall_fco2_lnd(index_x2a_Fall_fco2_lnd>0)
     call set_active_Faoo_fco2_ocn(index_x2a_Faoo_fco2_ocn>0)
