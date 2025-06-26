@@ -105,6 +105,11 @@ contains
              cam_in(c)%fanflx(i) = x2a(index_x2a_Fall_flxnh3, ig)
           endif
 
+          ! FAN+CLM NOx emission
+          if ( associated(cam_in(c)%noxflx) ) then
+             cam_in(c)%noxflx(i) = x2a(index_x2a_Fall_flxnox, ig)
+          endif
+
           ! Fire emission fluxes
           if ( associated(cam_in(c)%fireflx) .and. associated(cam_in(c)%fireztop) ) then
              cam_in(c)%fireflx(i,:shr_fire_emis_mechcomps_n) = &

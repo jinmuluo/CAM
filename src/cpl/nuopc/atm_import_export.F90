@@ -20,6 +20,7 @@ module atm_import_export
   use srf_field_check   , only : set_active_Fall_flxdst1
   use srf_field_check   , only : set_active_Fall_flxvoc
   use srf_field_check   , only : set_active_Fall_flxnh3
+  use srf_field_check   , only : set_active_Fall_flxnox
   use srf_field_check   , only : set_active_Fall_flxfire
   use srf_field_check   , only : set_active_Fall_fco2_lnd
   use srf_field_check   , only : set_active_Faoo_fco2_ocn
@@ -277,6 +278,10 @@ contains
     if (fan_fields /= ' ') then
        call fldlist_add(fldsToAtm_num, fldsToAtm, 'Fall_FAN_nh3')
        call set_active_Fall_flxnh3(.true.)
+       
+       ! Temporarily place NOx emission here
+       call fldlist_add(fldsToAtm_num, fldsToAtm, 'Fall_nox')
+       call set_active_Fall_flxnox(.true.)
     end if
 
     ! fire emissions fluxes from land
@@ -701,6 +706,21 @@ contains
           if ( associated(cam_in(c)%fanflx) ) then
              do i = 1,get_ncols_p(c)
                 cam_in(c)%fanflx(i) = fldptr1d(g) 
+                g = g + 1
+             end do
+          end if
+       end do
+    end if
+
+    !NOx emis fluxes from land (FAN + CLM)
+    call state_getfldptr(importState, 'Fall_nox', fldptr=fldptr1d, exists=exists, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (exists) then
+       g = 1
+       do c=begchunk,endchunk
+          if ( associated(cam_in(c)%noxflx) ) then
+             do i = 1,get_ncols_p(c)
+                cam_in(c)%noxflx(i) = fldptr1d(g)
                 g = g + 1
              end do
           end if

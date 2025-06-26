@@ -14,6 +14,7 @@ module srf_field_check
   logical, public, protected :: active_Fall_flxdst1 = .false.
   logical, public, protected :: active_Fall_flxvoc  = .false.
   logical, public, protected :: active_Fall_flxnh3  = .false.
+  logical, public, protected :: active_Fall_flxnox  = .false.
   logical, public, protected :: active_Fall_flxfire = .false.
   logical, public, protected :: active_Fall_fco2_lnd = .false.
   logical, public, protected :: active_Faoo_fco2_ocn = .false.
@@ -24,6 +25,7 @@ module srf_field_check
   public :: set_active_Fall_flxdst1
   public :: set_active_Fall_flxvoc
   public :: set_active_Fall_flxnh3
+  public :: set_active_Fall_flxnox
   public :: set_active_Fall_flxfire
   public :: set_active_Fall_fco2_lnd
   public :: set_active_Faoo_fco2_ocn
@@ -61,6 +63,11 @@ contains
     logical, intent(in) :: is_active
     active_Fall_flxnh3 = is_active
   end subroutine set_active_Fall_flxnh3
+
+  subroutine set_active_Fall_flxnox(is_active)
+    logical, intent(in) :: is_active
+    active_Fall_flxnox = is_active
+  end subroutine set_active_Fall_flxnox
 
   subroutine set_active_Fall_flxfire(is_active)
     logical, intent(in) :: is_active

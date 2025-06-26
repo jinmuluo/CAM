@@ -11,7 +11,8 @@ module cam_cpl_indices
                                set_active_Fall_flxdst1, set_active_Fall_flxvoc,           &
                                set_active_Fall_flxfire, set_active_Fall_fco2_lnd,         &
                                set_active_Faoo_fco2_ocn, set_active_Faxa_nhx,             &
-                               set_active_Faxa_noy, set_active_Fall_flxnh3
+                               set_active_Faxa_noy, set_active_Fall_flxnh3,               & 
+                               set_active_Fall_flxnox
 
   implicit none
 
@@ -85,6 +86,7 @@ module cam_cpl_indices
   integer :: index_x2a_Fall_flxdst4    ! dust flux size bin 4
   integer :: index_x2a_Fall_flxvoc     ! MEGAN emissions fluxes
   integer :: index_x2a_Fall_flxnh3     ! FAN NH3 emission fluxes
+  integer :: index_x2a_Fall_flxnox     ! FAN+CLM NOx emission fluxes
   integer :: index_x2a_Fall_flxfire    ! Fire emissions fluxes
   integer :: index_x2a_Sl_ztopfire   ! Fire emissions fluxes top of vert distribution
   integer :: index_x2a_Fall_fco2_lnd   ! co2 flux from land
@@ -158,8 +160,10 @@ contains
 
     if (shr_fan_to_atm) then
        index_x2a_Fall_flxnh3 = mct_avect_indexra(x2a,trim(shr_fan_fields_toke))
+       index_x2a_Fall_flxnox = mct_avect_indexra(x2a, 'Fall_nox')
     else
        index_x2a_Fall_flxnh3 = 0
+       index_x2a_Fall_flxnox = 0
     endif
 
     if (shr_fire_emis_mechcomps_n>0) then
@@ -223,6 +227,7 @@ contains
     call set_active_Fall_flxdst1( index_x2a_Fall_flxdst1>0)
     call set_active_Fall_flxvoc(  index_x2a_Fall_flxvoc>0)
     call set_active_Fall_flxnh3(  index_x2a_Fall_flxnh3>0)
+    call set_active_Fall_flxnox(  index_x2a_Fall_flxnox>0)
     call set_active_Fall_flxfire( index_x2a_Fall_flxfire>0)
     call set_active_Fall_fco2_lnd(index_x2a_Fall_fco2_lnd>0)
     call set_active_Faoo_fco2_ocn(index_x2a_Faoo_fco2_ocn>0)
