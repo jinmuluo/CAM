@@ -15,7 +15,7 @@ module chemistry
   use cam_logfile,      only : iulog
   use mo_gas_phase_chemdr, only : map2chm
   use shr_megan_mod,    only : shr_megan_mechcomps, shr_megan_mechcomps_n
-  use srf_field_check,  only : active_Fall_flxvoc
+  use srf_field_check,  only : active_Fall_flxvoc, active_Fall_flxnh3, active_Fall_flxnox
   use tracer_data,      only : MAXTRCRS
   use gcr_ionization,   only : gcr_ionization_readnl, gcr_ionization_init, gcr_ionization_adv
   use epp_ionization,   only : epp_ionization_readnl, epp_ionization_adv
@@ -775,6 +775,14 @@ end function chem_is_active
        enddo
     endif
 
+    ! Soil NOx and NH3 emission initialize
+    call addfld( 'SOIL_NH3_FAN', horiz_only, 'A', 'kg/m2/sec', ' soil NH3 (from FAN) emissions flux')
+    call addfld( 'SOIL_NO_COMBINE', horiz_only, 'A', 'kg/m2/sec', ' soil NO (CLM + FAN) emissions flux')
+    if (history_chemistry) then
+       call add_default('SOIL_NH3_FAN', 1, ' ')
+       call add_default('SOIL_NO_COMBINE', 1, ' ')
+    endif
+
     ! Galatic Cosmic Rays ...
     call gcr_ionization_init()
 
@@ -856,6 +864,8 @@ end function chem_is_active
     use hco_cc_emissions, only: hco_set_srf_emissions
     use fire_emissions,   only: fire_emissions_srf
     use ocean_emis,       only: ocean_emis_getflux
+    use constituents,     only: cnst_get_ind
+    use shr_fan_mod,      only: shr_fan_to_atm
 
     ! Arguments:
 
@@ -867,6 +877,7 @@ end function chem_is_active
 
     integer :: lchnk, ncol
     integer :: i, m,n
+    integer :: ixno, ixnh3    
 
     real(r8) :: sflx(pcols,gas_pcnst)
     real(r8) :: megflx(pcols)
@@ -925,6 +936,26 @@ end function chem_is_active
           endif
        endif
     enddo
+
+    !-----------------------------------------------------------------------
+    !       soil NO (FAN + CLM) and NH3(FAN) emission -JM Luo 2025 
+    !-----------------------------------------------------------------------
+    if ( shr_fan_to_atm .and. active_Fall_flxnh3) then
+       call cnst_get_ind('NH3', ixnh3, abort=.false.)
+       if ( ixnh3 .ne. -1 ) then
+          ! gN/m2/sec to kg NH3/m2/sec
+          cam_in%cflx(:ncol,ixnh3) = cam_in%cflx(:ncol,ixnh3) + cam_in%fanflx(:ncol)*0.001214
+          call outfld('SOIL_NH3_FAN', cam_in%fanflx(:ncol)*0.001214, ncol, lchnk)
+       endif
+    endif
+    if ( shr_fan_to_atm .and. active_Fall_flxnox) then
+       call cnst_get_ind('NO', ixno, abort=.false.)
+       if ( ixno .ne. -1 ) then
+          ! gN/m2/sec to kg NO/m2/sec
+          cam_in%cflx(:ncol,ixno) = cam_in%cflx(:ncol,ixno) + cam_in%noxflx(:ncol)*0.002143  
+          call outfld('SOIL_NO_COMBINE', cam_in%noxflx(:ncol)*0.002143, ncol, lchnk)
+       endif 
+    endif
 
     ! fire surface emissions if not elevated forcing
     call fire_emissions_srf( lchnk, ncol, cam_in%fireflx, cam_in%cflx )

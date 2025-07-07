@@ -496,6 +496,10 @@ subroutine cam_in_snapshot_init(cam_snapshot_before_num, cam_snapshot_after_num,
     call snapshot_addfld( ncam_in_var, cam_in_snapshot,  cam_snapshot_before_num, cam_snapshot_after_num, &
       'cam_in%fanflx',          'cam_in_fanflx',            'unset',          horiz_only)
 
+    if (associated (cam_in%noxflx)) &
+    call snapshot_addfld( ncam_in_var, cam_in_snapshot,  cam_snapshot_before_num, cam_snapshot_after_num, &
+      'cam_in%noxflx',          'cam_in_noxflx',            'unset',          horiz_only)
+
     if (associated (cam_in%fireflx)) &
     call snapshot_addfld( ncam_in_var, cam_in_snapshot,  cam_snapshot_before_num, cam_snapshot_after_num, &
       'cam_in%fireflx',         'cam_in_fireflx',           'unset',          horiz_only)
@@ -1042,6 +1046,9 @@ subroutine cam_in_snapshot_all_outfld(lchnk, file_num, cam_in)
       case ('cam_in%fanflx')
          if (associated (cam_in%fanflx)) &
          call outfld(cam_in_snapshot(i)%standard_name, cam_in%fanflx, pcols, lchnk)
+      case ('cam_in%noxflx')
+         if (associated (cam_in%noxflx)) &
+         call outfld(cam_in_snapshot(i)%standard_name, cam_in%noxflx, pcols, lchnk)
       case ('cam_in%fireflx')
          if (associated (cam_in%fireflx)) &
          call outfld(cam_in_snapshot(i)%standard_name, cam_in%fireflx, pcols, lchnk)

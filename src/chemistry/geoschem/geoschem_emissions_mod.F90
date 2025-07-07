@@ -161,6 +161,17 @@ CONTAINS
        ENDDO
     ENDIF
 
+    !-----------------------------------------------------------------------
+    ! ... SOIL NOX and NH3 emissions
+    !-----------------------------------------------------------------------
+    CALL Addfld( 'SOIL_NH3_FAN', horiz_only, 'A', 'kg/m2/s', Description )
+    CALL Addfld( 'SOIL_NO_COMBINE', horiz_only, 'A', 'kg/m2/s', Description )
+    IF ( history_chemistry ) THEN
+       CALL Add_default('SOIL_NH3_FAN', 1, ' ')
+       CALL Add_default('SOIL_NO_COMBINE', 1, ' ')
+    ENDIF
+
+
     DO N = iFirstCnst, pcnst
        SpcName = TRIM(cnst_name(N))//'_XFRC'
        CALL Addfld( TRIM(SpcName), (/ 'lev' /), 'A', 'molec/cm3/s', &
@@ -222,7 +233,9 @@ CONTAINS
     use physics_types,       only : physics_state
     use ppgrid,              only : pcols, pver, begchunk
     use srf_field_check,     only : active_Fall_flxvoc ! MEGAN emissions
+    use srf_field_check,     only : active_Fall_flxnh3, active_Fall_flxnox ! Soil NH3, NOx emissions 
     use string_utils,        only : to_upper
+    use shr_fan_mod,         only : shr_fan_to_atm
 
     ! GEOS-Chem modules
     use PhysConstants,       only : AVO, PI
@@ -244,6 +257,7 @@ CONTAINS
     INTEGER                                :: tmpIdx         ! pbuf field id
 
     INTEGER                                :: id_O3, id_HNO3 ! Species IDs for reuse
+    INTEGER                                :: id_NO, id_NH3    
 
     ! Logical
     LOGICAL                                :: rootChunk
@@ -492,6 +506,31 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     CALL fire_emissions_srf( LCHNK, nY, cam_in%fireflx, cam_in%cflx )
+
+    !-----------------------------------------------------------------------
+    ! Soil NOx and NH3 surface emissions  JM Luo 2025
+    ! Does this routine conflict with Hudman's scheme in GEOS-Chem?
+    !-----------------------------------------------------------------------
+    IF ( shr_fan_to_atm .AND. active_Fall_flxnh3) THEN 
+       call cnst_get_ind('NH3', id_NH3, abort=.FALSE.)
+       IF ( id_NH3 .NE. -1 ) THEN
+          DO J = 1, nY
+             ! gN/m2/sec to kg NH3/m2/sec
+             cam_in%cflx(J,id_NH3) = cam_in%cflx(J,id_NH3) + cam_in%fanflx(J)*0.001214
+          ENDDO
+          CALL Outfld('SOIL_NH3_FAN', cam_in%fanflx(:nY)*0.001214, nY, LCHNK)
+       ENDIF 
+    ENDIF
+    IF ( shr_fan_to_atm .AND. active_Fall_flxnox) THEN
+       call cnst_get_ind('NO', id_NO, abort=.FALSE.)
+       IF ( id_NO .NE. -1 ) THEN
+          DO J = 1, nY
+             ! gN/m2/sec to kg NO/m2/sec
+             cam_in%cflx(J,id_NO) = cam_in%cflx(J,id_NO) + cam_in%noxflx(J)*0.002143
+          ENDDO
+          CALL Outfld('SOIL_NO_COMBINE', cam_in%noxflx(:nY)*0.002143, nY, LCHNK) 
+       ENDIF 
+    ENDIF
 
     !-----------------------------------------------------------------------
     ! Apply CLM emissions (for elevated forcing)
